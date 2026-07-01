@@ -833,6 +833,32 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-wei
 
 <div class="toast" id="toast"></div>
 
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAy3A4qE5T1v9k_Kje2Hy_ni_GzzJ6EeBw",
+  authDomain: "fitness-blanka.firebaseapp.com",
+  projectId: "fitness-blanka",
+  storageBucket: "fitness-blanka.firebasestorage.app",
+  messagingSenderId: "495419003187",
+  appId: "1:495419003187:web:8ecbdff6ecd62a11936e46"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window._fb = {
+  auth, db,
+  signInAnonymously, onAuthStateChanged,
+  doc, setDoc, getDoc, onSnapshot
+};
+window.dispatchEvent(new Event('firebaseReady'));
+</script>
+
 <script>
 // ============ CONFIG ============
 const PASSWORD = 'Blanicka1';
@@ -857,6 +883,9 @@ const DEFAULT_TASKS = [];
 // ============ STATE ============
 let STATE = {
   authed:false,
+  fbReady:false,
+  fbUser:null,
+  unsubSync:null,
   currentMonth:new Date().getMonth(),
   currentYear:new Date().getFullYear(),
   selectedDate:null,
@@ -864,28 +893,74 @@ let STATE = {
   editingTaskId:null
 };
 
-function loadData(){
+// Data loading now happens after Firebase auth
+// Keep localStorage as fallback cache
+function loadLocalCache(){
   try{
     const d = JSON.parse(localStorage.getItem('uklid_data'));
-    // Version check: if data version changed, reset to defaults
-    const storedVersion = localStorage.getItem('uklid_data_version');
-    if(storedVersion !== DATA_VERSION){
-      console.log('Data version changed ('+(storedVersion||'none')+' -> '+DATA_VERSION+'), resetting');
-      STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
-      localStorage.setItem('uklid_data', JSON.stringify({tasks:STATE.tasks}));
-      localStorage.setItem('uklid_data_version', DATA_VERSION);
-      return;
-    }
     if(d && d.tasks) STATE.tasks = d.tasks;
     else STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
   }catch(e){
     STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
   }
 }
-function saveData(){
+function saveLocalCache(){
   localStorage.setItem('uklid_data',JSON.stringify({tasks:STATE.tasks}));
 }
-loadData();
+
+// Cloud sync
+async function loadFromCloud(uid){
+  try{
+    const docRef = window._fb.doc(window._fb.db, 'uklid', uid);
+    const docSnap = await window._fb.getDoc(docRef);
+    if(docSnap.exists()){
+      const d = docSnap.data();
+      if(d.tasks) STATE.tasks = d.tasks;
+      else STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+    }else{
+      // New user, create doc with defaults
+      STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+      await window._fb.setDoc(docRef, {tasks:STATE.tasks, version:DATA_VERSION});
+    }
+    saveLocalCache();
+  }catch(e){
+    console.error('Cloud load error:', e);
+    loadLocalCache();
+  }
+}
+
+async function saveToCloud(){
+  if(!STATE.fbUser) return;
+  try{
+    await window._fb.setDoc(
+      window._fb.doc(window._fb.db, 'uklid', STATE.fbUser.uid),
+      {tasks:STATE.tasks, version:DATA_VERSION}
+    );
+  }catch(e){ console.warn('Cloud save error:', e); }
+}
+
+function setupLiveSync(uid){
+  if(STATE.unsubSync) STATE.unsubSync();
+  const docRef = window._fb.doc(window._fb.db, 'uklid', uid);
+  STATE.unsubSync = window._fb.onSnapshot(docRef, (snap)=>{
+    if(snap.exists()){
+      const d = snap.data();
+      if(d.tasks && JSON.stringify(d.tasks) !== JSON.stringify(STATE.tasks)){
+        STATE.tasks = d.tasks;
+        saveLocalCache();
+        if(STATE.authed) renderAll();
+      }
+    }
+  });
+}
+
+function saveData(){
+  saveLocalCache();
+  if(STATE.fbUser) saveToCloud();
+}
+
+// Load local cache immediately (so UI has something to show)
+loadLocalCache();
 
 // ============ AUTH ============
 function handleLogin(e){
@@ -1501,6 +1576,25 @@ function renderAll(){
   renderTasks();
   renderStats();
 }
+
+// ============ FIREBASE INIT ============
+window.addEventListener('firebaseReady', ()=>{
+  STATE.fbReady = true;
+  window._fb.onAuthStateChanged(window._fb.auth, async (user)=>{
+    if(user){
+      STATE.fbUser = user;
+      await loadFromCloud(user.uid);
+      setupLiveSync(user.uid);
+      if(STATE.authed) renderAll();
+    }else{
+      try{
+        await window._fb.signInAnonymously(window._fb.auth);
+      }catch(e){
+        console.error('Anonymous auth failed:', e);
+      }
+    }
+  });
+});
 
 checkAuth();
 </script>
