@@ -741,22 +741,22 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-wei
 <!-- ============ STATS ============ -->
 <section class="page" id="page-stats">
   <div class="card">
-    <div class="card-title">📊 Statistiky tohoto měsíce</div>
+    <div class="card-title">📊 Rozdělení úkolů</div>
     <div class="grid grid-3" style="margin-bottom:20px">
       <div class="stat">
-        <div class="label">Splněno</div>
-        <div class="value" id="monthDone" style="color:var(--green)">0</div>
+        <div class="label">Celkem</div>
+        <div class="value" id="statTotal">0</div>
         <div class="sub">úkolů</div>
       </div>
       <div class="stat">
-        <div class="label">Zmeškáno</div>
-        <div class="value" id="monthMissed" style="color:var(--red)">0</div>
-        <div class="sub">úkolů</div>
+        <div class="label">Denních</div>
+        <div class="value" id="statDaily">0</div>
+        <div class="sub">opakuje se</div>
       </div>
       <div class="stat">
-        <div class="label">Úspěšnost</div>
-        <div class="value" id="monthRate">—</div>
-        <div class="sub">%</div>
+        <div class="label">Týdenních</div>
+        <div class="value" id="statWeekly">0</div>
+        <div class="sub">opakuje se</div>
       </div>
     </div>
     <div class="section-h">Rozdělení podle osoby</div>
@@ -764,13 +764,8 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-wei
   </div>
 
   <div class="card">
-    <div class="card-title">🏆 Žebříček</div>
-    <div id="leaderboard"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📝 Historie (posledních 30)</div>
-    <div id="historyLog"></div>
+    <div class="card-title">📋 Všechny úkoly podle osoby</div>
+    <div id="tasksByPerson"></div>
   </div>
 </section>
 
@@ -855,20 +850,7 @@ const DAYS_CZ = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','
 const MONTHS_CZ = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 
 // ============ DEFAULT TASKS ============
-const DEFAULT_TASKS = [
-  {id:'t1',name:'Vysávání',icon:'🧹',assignee:'Blanka',frequency:'biweekly',dayOfWeek:1,lastDone:null,history:[]},
-  {id:'t2',name:'Praní',icon:'🧺',assignee:'Mamka',frequency:'weekly',dayOfWeek:2,lastDone:null,history:[]},
-  {id:'t3',name:'Žehlení',icon:'👔',assignee:'Mamka',frequency:'weekly',dayOfWeek:3,lastDone:null,history:[]},
-  {id:'t4',name:'Vynést koš',icon:'🗑️',assignee:'Pavel',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
-  {id:'t5',name:'Vynést plasty',icon:'♻️',assignee:'Pavel',frequency:'weekly',dayOfWeek:4,lastDone:null,history:[]},
-  {id:'t6',name:'Třídění odpadu',icon:'♻️',assignee:'Blanka',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
-  {id:'t7',name:'Utírání prachu',icon:'🧽',assignee:'Blanka',frequency:'weekly',dayOfWeek:6,lastDone:null,history:[]},
-  {id:'t8',name:'Myčka nádobí',icon:'🍽️',assignee:'Pavel',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
-  {id:'t9',name:'Zalévání kytek',icon:'🌿',assignee:'Mamka',frequency:'biweekly',dayOfWeek:3,lastDone:null,history:[]},
-  {id:'t10',name:'Čištění lednice',icon:'🧫',assignee:'Mamka',frequency:'monthly',dayOfWeek:null,dayOfMonth:1,lastDone:null,history:[]},
-  {id:'t11',name:'Vynést sklo',icon:'♻️',assignee:'Pavel',frequency:'monthly',dayOfWeek:null,dayOfMonth:15,lastDone:null,history:[]},
-  {id:'t12',name:'Vynést papír',icon:'♻️',assignee:'Blanka',frequency:'monthly',dayOfWeek:null,dayOfMonth:8,lastDone:null,history:[]}
-];
+const DEFAULT_TASKS = [];
 
 // ============ STATE ============
 let STATE = {
@@ -950,13 +932,21 @@ function toast(msg,type=''){
 
 // ============ DATE HELPERS ============
 function todayStr(){
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
 }
 function dateToStr(d){
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
 }
 function strToDate(s){
-  return new Date(s+'T00:00:00');
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
 }
 function isSameDay(d1,d2){
   return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate();
@@ -1006,9 +996,6 @@ function taskAppliesOn(task, date){
   return false;
 }
 
-function isTaskDoneOn(task, dateStr){
-  return task.history && task.history.includes(dateStr);
-}
 
 function getTasksForDate(date){
   return STATE.tasks.filter(t => taskAppliesOn(t, date));
@@ -1018,25 +1005,6 @@ function getTodayTasks(){
   return getTasksForDate(new Date());
 }
 
-function markTaskDone(taskId){
-  const task = STATE.tasks.find(t=>t.id===taskId);
-  if(!task) return;
-  const today = todayStr();
-  if(!task.history) task.history = [];
-  if(task.history.includes(today)){
-    // Unmark
-    task.history = task.history.filter(d=>d!==today);
-    task.lastDone = task.history.length ? task.history[task.history.length-1] : null;
-    toast('Úkol vrácen ↩️');
-  }else{
-    task.history.push(today);
-    task.lastDone = today;
-    toast('Úkol splněn! ✅','success');
-  }
-  saveData();
-  renderAll();
-}
-window.markTaskDone = markTaskDone;
 
 // ============ RENDER: TODAY ============
 function renderToday(){
@@ -1056,39 +1024,36 @@ function renderToday(){
 
   const tasks = getTodayTasks();
   const todayStr_ = todayStr();
-  const doneCount = tasks.filter(t=>isTaskDoneOn(t,todayStr_)).length;
 
   document.getElementById('todaySub').textContent = tasks.length ? `${tasks.length} úkolů na dnes` : 'Žádné úkoly na dnes 🎉';
 
   const list = document.getElementById('todayList');
   if(tasks.length===0){
-    list.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><div class="text">Dnes žádné úkoly! Užij si den.</div></div>';
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><div class="text">Dnes žádné úkoly!<br>Klikni na Úkoly a přidej první.</div></div>';
   }else{
     list.innerHTML = tasks.map(t=>{
-      const done = isTaskDoneOn(t,todayStr_);
-      return `<div class="today-task ${done?'done':''}">
+      return `<div class="today-task">
         <div class="tt-icon">${t.icon}</div>
         <div class="tt-info">
           <div class="tt-name">${t.name}</div>
           <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
         </div>
-        <div class="tt-check ${done?'done':''}" onclick="markTaskDone('${t.id}')">${done?'✓':''}</div>
       </div>`;
     }).join('');
   }
 
   // Stats
-  document.getElementById('statTodayDone').textContent = `${doneCount}/${tasks.length}`;
+  document.getElementById('statTodayDone').textContent = `${tasks.length} úkolů`;
 
   // Week
-  let weekDone = 0;
+  let weekTotal = 0;
   for(let i=0;i<7;i++){
     const d = new Date(); d.setDate(d.getDate()-i);
     const ds = dateToStr(d);
     const wTasks = getTasksForDate(d);
-    weekDone += wTasks.filter(t=>isTaskDoneOn(t,ds)).length;
+    weekTotal += wTasks.length;
   }
-  document.getElementById('statWeekDone').textContent = weekDone;
+  document.getElementById('statWeekDone').textContent = weekTotal;
   document.getElementById('statTotalTasks').textContent = STATE.tasks.length;
 }
 
@@ -1155,8 +1120,7 @@ function miniTasks(date){
   const tasks = getTasksForDate(date);
   const ds = dateToStr(date);
   return tasks.slice(0,3).map(t=>{
-    const done = isTaskDoneOn(t,ds);
-    return `<div class="day-task ${done?'done':''}">
+    return `<div class="day-task">
       <span class="task-dot bg-${t.assignee}"></span>
       ${t.icon} ${t.name}
     </div>`;
@@ -1173,46 +1137,27 @@ function renderSelectedDay(){
   const ds = STATE.selectedDate;
   const d = strToDate(ds);
   const tasks = getTasksForDate(d);
-  const doneCount = tasks.filter(t=>isTaskDoneOn(t,ds)).length;
 
   const container = document.getElementById('calSelectedDay');
   container.innerHTML = `
     <div style="margin-bottom:14px">
       <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700">${formatDateLong(d)}</div>
-      <div style="color:var(--muted);font-size:13px;margin-top:2px">${tasks.length} úkolů · ${doneCount} splněno</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:2px">${tasks.length} úkolů</div>
     </div>
     ${tasks.length===0?'<div class="empty-state"><div class="emoji">🎉</div><div class="text">Žádné úkoly tento den</div></div>':
     tasks.map(t=>{
-      const done = isTaskDoneOn(t,ds);
-      return `<div class="today-task ${done?'done':''}" style="margin-bottom:8px">
+        return `<div class="today-task" style="margin-bottom:8px">
         <div class="tt-icon">${t.icon}</div>
         <div class="tt-info">
           <div class="tt-name">${t.name}</div>
           <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
         </div>
-        <div class="tt-check ${done?'done':''}" onclick="markTaskDoneOnDate('${t.id}','${ds}')">${done?'✓':''}</div>
       </div>`;
     }).join('')}
     <button class="btn btn-sm btn-outline" style="margin-top:12px" onclick="openTaskModal(null,'${ds}')">+ Přidat úkol na tento den</button>
   `;
 }
 
-function markTaskDoneOnDate(taskId,ds){
-  const task = STATE.tasks.find(t=>t.id===taskId);
-  if(!task) return;
-  if(!task.history) task.history = [];
-  if(task.history.includes(ds)){
-    task.history = task.history.filter(d=>d!==ds);
-    toast('Úkol vrácen ↩️');
-  }else{
-    task.history.push(ds);
-    if(ds===todayStr()) task.lastDone = ds;
-    toast('Úkol splněn! ✅','success');
-  }
-  saveData();
-  renderAll();
-}
-window.markTaskDoneOnDate = markTaskDoneOnDate;
 
 function changeMonth(delta){
   STATE.currentMonth += delta;
@@ -1249,7 +1194,7 @@ function renderTasks(){
       <div class="task-icon">${t.icon}</div>
       <div class="task-info">
         <div class="task-name">${t.name}</div>
-        <div class="task-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}${t.lastDone?` · naposledy ${formatDateShort(t.lastDone)}`:''}</div>
+        <div class="task-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
       </div>
       <div class="task-actions">
         <button class="task-edit" onclick="openTaskModal('${t.id}')">✎</button>
@@ -1424,46 +1369,22 @@ window.saveTask = saveTask;
 
 // ============ RENDER: STATS ============
 function renderStats(){
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  let done = 0, missed = 0;
-  const personStats = {};
-  PEOPLE.forEach(p=>personStats[p]={done:0,missed:0});
-
-  // Iterate this month days
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  for(let i=1;i<=daysInMonth;i++){
-    const d = new Date(year, month, i);
-    if(d > now) break;
-    const ds = dateToStr(d);
-    const tasks = getTasksForDate(d);
-    tasks.forEach(t=>{
-      if(isTaskDoneOn(t,ds)){
-        done++;
-        personStats[t.assignee].done++;
-      }else{
-        missed++;
-        personStats[t.assignee].missed++;
-      }
-    });
-  }
-
-  document.getElementById('monthDone').textContent = done;
-  document.getElementById('monthMissed').textContent = missed;
-  const total = done+missed;
-  document.getElementById('monthRate').textContent = total ? Math.round(done/total*100) : '—';
+  const total = STATE.tasks.length;
+  const daily = STATE.tasks.filter(t=>t.frequency==='daily').length;
+  const weekly = STATE.tasks.filter(t=>t.frequency==='weekly').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDaily').textContent = daily;
+  document.getElementById('statWeekly').textContent = weekly;
 
   // Person breakdown
   const sp = document.getElementById('statsByPerson');
   sp.innerHTML = PEOPLE.map(p=>{
-    const s = personStats[p];
-    const t = s.done+s.missed;
-    const pct = t ? Math.round(s.done/t*100) : 0;
+    const count = STATE.tasks.filter(t=>t.assignee===p).length;
+    const pct = total ? Math.round(count/total*100) : 0;
     return `<div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span class="assignee-${p}" style="font-weight:700">${p}</span>
-        <span style="color:var(--muted);font-size:13px;font-weight:600">${s.done}/${t} (${pct}%)</span>
+        <span style="color:var(--muted);font-size:13px;font-weight:600">${count} úkolů</span>
       </div>
       <div class="stat-bar">
         <div class="seg bg-${p}" style="width:${pct}%"></div>
@@ -1471,38 +1392,20 @@ function renderStats(){
     </div>`;
   }).join('');
 
-  // Leaderboard
-  const lb = [...PEOPLE].sort((a,b)=>personStats[b].done-personStats[a].done);
-  const medals = ['🥇','🥈','🥉'];
-  document.getElementById('leaderboard').innerHTML = lb.map((p,i)=>
-    `<div class="log-item">
-      <span class="l-name">${medals[i]||''} <span class="assignee-${p}">${p}</span></span>
-      <span class="l-meta">${personStats[p].done} splněno</span>
-    </div>`
-  ).join('');
-
-  // History log
-  const allHistory = [];
-  STATE.tasks.forEach(t=>{
-    if(t.history){
-      t.history.forEach(d=>{
-        allHistory.push({date:d,task:t.name,assignee:t.assignee,icon:t.icon});
-      });
-    }
-  });
-  allHistory.sort((a,b)=>b.date.localeCompare(a.date));
-
-  const hl = document.getElementById('historyLog');
-  if(allHistory.length===0){
-    hl.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><div class="text">Zatím nic nesplněno</div></div>';
-  }else{
-    hl.innerHTML = allHistory.slice(0,30).map(h=>
-      `<div class="log-item">
-        <span><span style="font-size:16px">${h.icon}</span> <span class="l-name">${h.task}</span> <span class="assignee-${h.assignee}" style="font-size:12px">· ${h.assignee}</span></span>
-        <span class="l-meta">${formatDateShort(h.date)}</span>
-      </div>`
-    ).join('');
-  }
+  // Tasks by person
+  const tbp = document.getElementById('tasksByPerson');
+  tbp.innerHTML = PEOPLE.map(p=>{
+    const tasks = STATE.tasks.filter(t=>t.assignee===p);
+    if(tasks.length===0) return '';
+    return `<div style="margin-bottom:18px">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:10px" class="assignee-${p}">${p}</div>
+      ${tasks.map(t=>`<div class="log-item">
+        <span><span style="font-size:16px">${t.icon}</span> <span class="l-name">${t.name}</span></span>
+        <span class="l-meta">${freqLabel(t.frequency)}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('') || '<div class="empty-state"><div class="emoji">📋</div><div class="text">Žádné úkoly</div></div>';
+}
 }
 
 // ============ NTFY ============
