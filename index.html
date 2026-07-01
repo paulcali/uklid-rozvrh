@@ -837,14 +837,15 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-wei
 // ============ CONFIG ============
 const PASSWORD = 'Blanicka1';
 const NTFY_TOPIC = 'vHCoTzxTAoRtbDV-uVdbPA';
-const DATA_VERSION = '2';  // bump when breaking data changes; auto-resets old client data
+const DATA_VERSION = '3';  // bump when breaking data changes; auto-resets old client data
 const PEOPLE = ['Pavel','Mamka','Blanka'];
 const ICONS = ['🧹','🧺','👔','🗑️','♻️','🪣','🧽','🚿','🌿','🍽️','🧫','🧴','📦','🔧','🪟','🛏️','🐾','💧','🔥','❄️'];
 const FREQUENCIES = [
-  {id:'daily',label:'Denně'},
-  {id:'weekly',label:'Týdně'},
-  {id:'biweekly',label:'1× za 2 dny'},
-  {id:'monthly',label:'Měsíčně'},
+  {id:'daily',label:'1× denně'},
+  {id:'every2',label:'1× za 2 dny'},
+  {id:'every3',label:'1× za 3 dny'},
+  {id:'weekly',label:'1× týdně'},
+  {id:'monthly',label:'1× měsíčně'},
   {id:'once',label:'Jednorázově'}
 ];
 const DAYS_CZ = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
@@ -969,37 +970,27 @@ function formatDateLong(d){
 
 // ============ TASK SCHEDULING ============
 function taskAppliesOn(task, date){
-  const today = new Date();
-  // If once, check if it's the date
   if(task.frequency==='once'){
     return task.onceDate === dateToStr(date);
   }
-  // If daily, show every day
   if(task.frequency==='daily'){
     return true;
   }
-  // If weekly, show on dayOfWeek
+  if(task.frequency==='every2'){
+    // Every 2 days from startDate (or from task creation date)
+    const start = task.startDate ? strToDate(task.startDate) : strToDate(task.createdAt || todayStr());
+    const diff = Math.floor((date - start) / 86400000);
+    return diff >= 0 && diff % 2 === 0;
+  }
+  if(task.frequency==='every3'){
+    const start = task.startDate ? strToDate(task.startDate) : strToDate(task.createdAt || todayStr());
+    const diff = Math.floor((date - start) / 86400000);
+    return diff >= 0 && diff % 3 === 0;
+  }
   if(task.frequency==='weekly'){
-    // JS getDay: 0=Sun, 1=Mon, ..., 6=Sat
-    // We use: 1=Mon, 2=Tue, ..., 7=Sun
     const jsDay = date.getDay()===0 ? 7 : date.getDay();
     return task.dayOfWeek === jsDay;
   }
-  // If biweekly, show every other day
-  if(task.frequency==='biweekly'){
-    // Show on dayOfWeek, but only if last done was >= 2 days ago
-    const jsDay = date.getDay()===0 ? 7 : date.getDay();
-    if(task.dayOfWeek !== jsDay) {
-      // Actually, biweekly = every 2 days, not dayOfWeek based
-      // Let's interpret "biweekly" as "every 2 days"
-    }
-    // Interpret as "every 2 days from lastDone or from today"
-    if(!task.lastDone) return true; // never done, show today
-    const lastDone = strToDate(task.lastDone);
-    const diff = Math.floor((date - lastDone) / 86400000);
-    return diff >= 2;
-  }
-  // If monthly, show on dayOfMonth
   if(task.frequency==='monthly'){
     return task.dayOfMonth === date.getDate();
   }
@@ -1042,11 +1033,13 @@ function renderToday(){
     list.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><div class="text">Dnes žádné úkoly!<br>Klikni na Úkoly a přidej první.</div></div>';
   }else{
     list.innerHTML = tasks.map(t=>{
+      const assignees = Array.isArray(t.assignee) ? t.assignee : [t.assignee];
+      const assigneeHtml = assignees.map(a=>`<span class="assignee-${a}">${a}</span>`).join(', ');
       return `<div class="today-task">
         <div class="tt-icon">${t.icon}</div>
         <div class="tt-info">
           <div class="tt-name">${t.name}</div>
-          <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
+          <div class="tt-meta">${assigneeHtml} · ${freqLabel(t.frequency)}</div>
         </div>
       </div>`;
     }).join('');
@@ -1128,10 +1121,11 @@ function renderCalendar(){
 
 function miniTasks(date){
   const tasks = getTasksForDate(date);
-  const ds = dateToStr(date);
   return tasks.slice(0,3).map(t=>{
+    const assignees = Array.isArray(t.assignee) ? t.assignee : [t.assignee];
+    const dot = assignees[0] || 'Pavel';
     return `<div class="day-task">
-      <span class="task-dot bg-${t.assignee}"></span>
+      <span class="task-dot bg-${dot}"></span>
       ${t.icon} ${t.name}
     </div>`;
   }).join('') + (tasks.length>3?`<div class="day-task" style="text-align:center;opacity:0.6">+${tasks.length-3}</div>`:'');
@@ -1156,11 +1150,13 @@ function renderSelectedDay(){
     </div>
     ${tasks.length===0?'<div class="empty-state"><div class="emoji">🎉</div><div class="text">Žádné úkoly tento den</div></div>':
     tasks.map(t=>{
-        return `<div class="today-task" style="margin-bottom:8px">
+      const assignees = Array.isArray(t.assignee) ? t.assignee : [t.assignee];
+      const assigneeHtml = assignees.map(a=>`<span class="assignee-${a}">${a}</span>`).join(', ');
+      return `<div class="today-task" style="margin-bottom:8px">
         <div class="tt-icon">${t.icon}</div>
         <div class="tt-info">
           <div class="tt-name">${t.name}</div>
-          <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
+          <div class="tt-meta">${assigneeHtml} · ${freqLabel(t.frequency)}</div>
         </div>
       </div>`;
     }).join('')}
@@ -1199,19 +1195,21 @@ function renderTasks(){
     list.innerHTML = '<div class="empty-state"><div class="emoji">📋</div><div class="text">Žádné úkoly. Přidej první!</div></div>';
     return;
   }
-  list.innerHTML = STATE.tasks.map(t=>`
-    <div class="task-item">
+  list.innerHTML = STATE.tasks.map(t=>{
+    const assignees = Array.isArray(t.assignee) ? t.assignee : [t.assignee];
+    const assigneeHtml = assignees.map(a=>`<span class="assignee-${a}">${a}</span>`).join(', ');
+    return `<div class="task-item">
       <div class="task-icon">${t.icon}</div>
       <div class="task-info">
         <div class="task-name">${t.name}</div>
-        <div class="task-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
+        <div class="task-meta">${assigneeHtml} · ${freqLabel(t.frequency)}</div>
       </div>
       <div class="task-actions">
         <button class="task-edit" onclick="openTaskModal('${t.id}')">✎</button>
         <button class="task-del" onclick="deleteTask('${t.id}')">🗑️</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function formatDateShort(ds){
@@ -1248,9 +1246,12 @@ function openTaskModal(taskId=null, presetDate=null){
         </div>
       </div>
       <div class="field">
-        <label>Kdo</label>
+        <label>Kdo (můžeš vybrat i víc)</label>
         <div class="assignee-picker" id="assigneePicker">
-          ${PEOPLE.map(p=>`<div class="assignee-pick ${task&&task.assignee===p?'selected':''}" onclick="pickAssignee(this,'${p}')" data-assignee="${p}"><span class="assignee-${p}">${p}</span></div>`).join('')}
+          ${PEOPLE.map(p=>{
+            const sel = task && (Array.isArray(task.assignee) ? task.assignee.includes(p) : task.assignee===p);
+            return `<div class="assignee-pick ${sel?'selected':''}" onclick="pickAssignee(this,'${p}')" data-assignee="${p}"><span class="assignee-${p}">${p}</span></div>`;
+          }).join('')}
         </div>
       </div>
       <div class="field">
@@ -1279,6 +1280,10 @@ function openTaskModal(taskId=null, presetDate=null){
         <label>Datum (jednorázový úkol)</label>
         <input type="date" id="taskOnceDate" value="${presetDate||''}">
       </div>
+      <div class="field" id="startDateField" style="display:none">
+        <label>Začíná od (pro 1× za 2/3 dny)</label>
+        <input type="date" id="taskStartDate" value="${todayStr()}">
+      </div>
       <div style="display:flex;gap:10px;margin-top:8px">
         <button type="submit" class="btn btn-block">${task?'Uložit změny':'Přidat úkol'}</button>
         ${task?`<button type="button" class="btn btn-outline" onclick="closeModal()">Zrušit</button>`:''}
@@ -1291,7 +1296,7 @@ function openTaskModal(taskId=null, presetDate=null){
     if(task.dayOfWeek) document.getElementById('taskDayOfWeek').value = task.dayOfWeek;
     if(task.dayOfMonth) document.getElementById('taskDayOfMonth').value = task.dayOfMonth;
     if(task.onceDate) document.getElementById('taskOnceDate').value = task.onceDate;
-    // Show appropriate field
+    if(task.startDate) document.getElementById('taskStartDate').value = task.startDate;
     updateFreqFields(task.frequency);
   }else{
     // Default: select first icon, first assignee, daily
@@ -1320,8 +1325,7 @@ function pickIcon(el, ic){
 window.pickIcon = pickIcon;
 
 function pickAssignee(el, p){
-  document.querySelectorAll('.assignee-pick').forEach(x=>x.classList.remove('selected'));
-  el.classList.add('selected');
+  el.classList.toggle('selected');
 }
 window.pickAssignee = pickAssignee;
 
@@ -1336,6 +1340,7 @@ function updateFreqFields(freq){
   document.getElementById('dayOfWeekField').style.display = (freq==='weekly') ? 'block' : 'none';
   document.getElementById('dayOfMonthField').style.display = (freq==='monthly') ? 'block' : 'none';
   document.getElementById('onceDateField').style.display = (freq==='once') ? 'block' : 'none';
+  document.getElementById('startDateField').style.display = ((freq==='every2'||freq==='every3') ? 'block' : 'none');
 }
 
 function saveTask(e){
@@ -1343,11 +1348,13 @@ function saveTask(e){
   const name = document.getElementById('taskName').value.trim();
   if(!name){ toast('Zadej název úkolu','error'); return; }
   const icon = document.querySelector('.icon-pick.selected')?.dataset.icon || '🧹';
-  const assignee = document.querySelector('.assignee-pick.selected')?.dataset.assignee || 'Pavel';
+  const selectedAssignees = Array.from(document.querySelectorAll('.assignee-pick.selected')).map(el=>el.dataset.assignee);
+  const assignee = selectedAssignees.length ? selectedAssignees : ['Pavel'];
   const frequency = document.querySelector('.freq-pick.selected')?.dataset.freq || 'daily';
   const dayOfWeek = frequency==='weekly' ? parseInt(document.getElementById('taskDayOfWeek').value) : null;
   const dayOfMonth = frequency==='monthly' ? parseInt(document.getElementById('taskDayOfMonth').value) : null;
   const onceDate = frequency==='once' ? document.getElementById('taskOnceDate').value : null;
+  const startDate = (frequency==='every2' || frequency==='every3') ? (document.getElementById('taskStartDate')?.value || todayStr()) : null;
 
   if(STATE.editingTaskId){
     const task = STATE.tasks.find(t=>t.id===STATE.editingTaskId);
@@ -1359,14 +1366,15 @@ function saveTask(e){
       task.dayOfWeek = dayOfWeek;
       task.dayOfMonth = dayOfMonth;
       task.onceDate = onceDate;
+      task.startDate = startDate;
     }
     toast('Úkol upraven ✏️');
   }else{
     const newTask = {
       id: 't'+Date.now(),
       name, icon, assignee, frequency,
-      dayOfWeek, dayOfMonth, onceDate,
-      lastDone: null, history: []
+      dayOfWeek, dayOfMonth, onceDate, startDate,
+      createdAt: todayStr()
     };
     STATE.tasks.push(newTask);
     toast('Úkol přidán! 📋','success');
@@ -1386,10 +1394,16 @@ function renderStats(){
   document.getElementById('statDaily').textContent = daily;
   document.getElementById('statWeekly').textContent = weekly;
 
+  // Helper: does task include person?
+  function taskHasPerson(t, p){
+    if(Array.isArray(t.assignee)) return t.assignee.includes(p);
+    return t.assignee===p;
+  }
+
   // Person breakdown
   const sp = document.getElementById('statsByPerson');
   sp.innerHTML = PEOPLE.map(p=>{
-    const count = STATE.tasks.filter(t=>t.assignee===p).length;
+    const count = STATE.tasks.filter(t=>taskHasPerson(t,p)).length;
     const pct = total ? Math.round(count/total*100) : 0;
     return `<div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -1405,7 +1419,7 @@ function renderStats(){
   // Tasks by person
   const tbp = document.getElementById('tasksByPerson');
   tbp.innerHTML = PEOPLE.map(p=>{
-    const tasks = STATE.tasks.filter(t=>t.assignee===p);
+    const tasks = STATE.tasks.filter(t=>taskHasPerson(t,p));
     if(tasks.length===0) return '';
     return `<div style="margin-bottom:18px">
       <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:10px" class="assignee-${p}">${p}</div>
