@@ -837,6 +837,7 @@ label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-wei
 // ============ CONFIG ============
 const PASSWORD = 'Blanicka1';
 const NTFY_TOPIC = 'vHCoTzxTAoRtbDV-uVdbPA';
+const DATA_VERSION = '2';  // bump when breaking data changes; auto-resets old client data
 const PEOPLE = ['Pavel','Mamka','Blanka'];
 const ICONS = ['🧹','🧺','👔','🗑️','♻️','🪣','🧽','🚿','🌿','🍽️','🧫','🧴','📦','🔧','🪟','🛏️','🐾','💧','🔥','❄️'];
 const FREQUENCIES = [
@@ -865,6 +866,15 @@ let STATE = {
 function loadData(){
   try{
     const d = JSON.parse(localStorage.getItem('uklid_data'));
+    // Version check: if data version changed, reset to defaults
+    const storedVersion = localStorage.getItem('uklid_data_version');
+    if(storedVersion !== DATA_VERSION){
+      console.log('Data version changed ('+(storedVersion||'none')+' -> '+DATA_VERSION+'), resetting');
+      STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+      localStorage.setItem('uklid_data', JSON.stringify({tasks:STATE.tasks}));
+      localStorage.setItem('uklid_data_version', DATA_VERSION);
+      return;
+    }
     if(d && d.tasks) STATE.tasks = d.tasks;
     else STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
   }catch(e){
@@ -1414,11 +1424,11 @@ async function sendTestNotification(){
     const resp = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
       method:'POST',
       headers:{
-        'Title':'Úklid Rozvrh 📋',
+        'Title':'Uklid rozvrh',
         'Tags':'broom,white_check_mark',
         'Priority':'default'
       },
-      body:'🔔 Testovací notifikace — úklidový rozvrh funguje!'
+      body:'Testovaci notifikace - uklidovy rozvrh funguje!'
     });
     if(resp.ok){
       toast('Notifikace odeslána! 🔔','success');
