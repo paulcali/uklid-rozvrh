@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Uklid Rozvrh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0a;
+  --surface:#141414;
+  --surface-2:#1c1c1c;
+  --surface-3:#262626;
+  --line:rgba(255,255,255,0.08);
+  --line-2:rgba(255,255,255,0.14);
+  --line-strong:rgba(255,255,255,0.22);
+  --text:#fafafa;
+  --text-2:#e5e5e5;
+  --muted:#888;
+  --muted-2:#666;
+  --accent:#fff;
+  --green:#34d399;
+  --yellow:#fbbf24;
+  --red:#f87171;
+  --blue:#60a5fa;
+  --purple:#a78bfa;
+  --r-sm:8px;
+  --r:12px;
+  --r-lg:18px;
+  --r-xl:26px;
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:-0.014em;
+  line-height:1.5;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 0%,rgba(255,255,255,0.04),transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 100%,rgba(255,255,255,0.025),transparent 60%);
+}
+.serif{font-family:'Space Grotesk',sans-serif}
+
+/* ============ LOGIN ============ */
+.login-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px;position:relative;
+}
+.login-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  padding:44px 36px;
+  max-width:420px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  position:relative;overflow:hidden;
+}
+.login-card::before{
+  content:'';position:absolute;top:-50%;left:-20%;
+  width:140%;height:200%;
+  background:radial-gradient(ellipse,rgba(255,255,255,0.04),transparent 60%);
+  filter:blur(40px);pointer-events:none;
+}
+.login-logo{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  margin-bottom:32px;position:relative;
+}
+.login-logo-mark{
+  width:64px;height:64px;
+  background:var(--accent);
+  border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 32px rgba(255,255,255,0.12);
+  position:relative;overflow:hidden;
+}
+.login-logo-mark svg{width:34px;height:34px;color:#0a0a0a}
+.login-logo h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:26px;font-weight:700;letter-spacing:-0.03em;
+  text-align:center;
+}
+.login-logo .sub{
+  color:var(--muted);font-size:13.5px;font-weight:500;
+  text-align:center;margin-top:4px;
+}
+.login-form{display:flex;flex-direction:column;gap:14px;position:relative}
+.login-form input{
+  background:var(--surface-2);
+  border:1.5px solid var(--line-2);
+  color:var(--text);
+  padding:14px 16px;border-radius:12px;
+  font-family:inherit;font-size:15px;font-weight:500;
+  transition:.18s;text-align:center;letter-spacing:0.05em;
+}
+.login-form input:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(255,255,255,0.06);
+}
+.login-form input::placeholder{color:var(--muted-2);letter-spacing:0}
+.login-submit{
+  background:var(--accent);color:#0a0a0a;border:none;
+  padding:15px;border-radius:12px;
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  transition:.2s;margin-top:4px;
+}
+.login-submit:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,255,255,0.1)}
+.login-submit:active{transform:translateY(0)}
+.login-error{
+  background:rgba(248,113,113,0.08);
+  border:1px solid rgba(248,113,113,0.3);
+  color:var(--red);
+  padding:11px 14px;border-radius:10px;
+  font-size:13px;font-weight:600;display:none;text-align:center;
+}
+.login-error.show{display:block;animation:shake .3s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+
+/* ============ APP ============ */
+#app{display:none;min-height:100vh}
+#app.show{display:block}
+
+header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,10,10,0.82);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-bottom:1px solid var(--line);
+  max-width:1200px;margin:0 auto;
+  padding:14px 22px;
+  display:flex;align-items:center;gap:14px;
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;font-size:17px;letter-spacing:-0.02em;
+  white-space:nowrap;
+}
+.logo-mark{
+  width:32px;height:32px;border-radius:10px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(255,255,255,0.1);
+}
+.logo-mark svg{width:18px;height:18px;color:#0a0a0a}
+nav{display:flex;gap:2px;flex:1;justify-content:center;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-btn{
+  background:none;border:none;
+  color:var(--muted);
+  padding:9px 14px;border-radius:10px;
+  cursor:pointer;
+  font-family:inherit;font-size:13.5px;font-weight:600;
+  transition:.18s;white-space:nowrap;
+}
+.nav-btn:hover{color:var(--text-2);background:var(--surface-2)}
+.nav-btn.active{color:var(--text);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line-2)}
+.header-right{display:flex;align-items:center;gap:8px}
+.today-badge{
+  background:var(--surface-2);
+  border:1px solid var(--line-2);
+  padding:7px 13px;border-radius:30px;
+  font-size:12.5px;font-weight:700;white-space:nowrap;
+  color:var(--text-2);
+}
+
+main{max-width:1200px;margin:0 auto;padding:28px 22px 100px}
+.page{display:none;animation:pageIn .4s cubic-bezier(.2,.8,.2,1)}
+.page.active{display:block}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============ CARDS ============ */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  padding:24px;margin-bottom:18px;
+}
+.card-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:17px;font-weight:700;letter-spacing:-0.02em;
+  margin-bottom:18px;display:flex;align-items:center;gap:11px;
+}
+.card-title .ico{
+  width:30px;height:30px;background:var(--surface-2);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+}
+.card-title .sub{
+  margin-left:auto;font-size:12px;color:var(--muted);
+  font-weight:600;
+}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+
+/* ============ STAT ============ */
+.stat{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:20px 18px;text-align:center;
+  transition:.22s;
+}
+.stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;font-weight:700}
+.stat .value{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.03em}
+.stat .sub{font-size:12px;margin-top:6px;color:var(--muted);font-weight:600}
+
+/* ============ BUTTONS ============ */
+.btn{
+  background:var(--accent);color:#0a0a0a;border:none;
+  padding:13px 24px;border-radius:12px;cursor:pointer;
+  font-family:inherit;font-size:14.5px;font-weight:700;letter-spacing:-0.01em;
+  transition:.2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,255,255,0.1)}
+.btn:active{transform:translateY(0)}
+.btn-outline{background:transparent;border:1.5px solid var(--line-2);color:var(--text);box-shadow:none}
+.btn-outline:hover{border-color:var(--accent);background:var(--surface-2);box-shadow:none}
+.btn-ghost{background:var(--surface-2);border:1px solid var(--line-2);color:var(--text);box-shadow:none}
+.btn-ghost:hover{background:var(--surface-3);box-shadow:none}
+.btn-sm{padding:9px 16px;font-size:13px;border-radius:10px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-block{width:100%}
+
+/* ============ INPUTS ============ */
+input,select,textarea{
+  background:var(--surface-2);
+  border:1.5px solid var(--line-2);
+  color:var(--text);
+  padding:13px 15px;border-radius:11px;
+  font-family:inherit;font-size:14.5px;font-weight:500;
+  width:100%;transition:.18s;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(255,255,255,0.06);
+}
+input::placeholder{color:var(--muted-2)}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em}
+.field{margin-bottom:16px}
+.row{display:flex;gap:12px;align-items:flex-end}
+.row .field{flex:1;margin-bottom:0}
+
+/* ============ CALENDAR ============ */
+.cal-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;flex-wrap:wrap;gap:10px;
+}
+.cal-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;font-weight:700;letter-spacing:-0.025em;
+}
+.cal-nav{display:flex;gap:6px}
+.cal-nav button{
+  background:var(--surface-2);border:1px solid var(--line-2);
+  color:var(--text);width:36px;height:36px;border-radius:10px;
+  cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+  transition:.15s;
+}
+.cal-nav button:hover{background:var(--surface-3)}
+.cal-weekdays{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px;
+}
+.cal-weekday{
+  text-align:center;font-size:11px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;
+  padding:8px 0;
+}
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+}
+.cal-day{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 8px;
+  min-height:92px;
+  cursor:pointer;transition:.18s;
+  position:relative;
+  display:flex;flex-direction:column;gap:4px;
+}
+.cal-day:hover{border-color:var(--line-2);background:var(--surface-3)}
+.cal-day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cal-day.other-month{opacity:0.3}
+.cal-day .day-num{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;font-weight:700;color:var(--text-2);
+  align-self:flex-start;
+}
+.cal-day.today .day-num{color:var(--accent)}
+.cal-day .day-tasks{
+  display:flex;flex-direction:column;gap:3px;flex:1;overflow:hidden;
+}
+.cal-day .day-task{
+  background:var(--surface-3);
+  border-radius:5px;
+  padding:3px 6px;
+  font-size:10px;font-weight:600;
+  color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:3px;
+}
+.cal-day .day-task.done{
+  background:rgba(52,211,153,0.15);
+  color:var(--green);
+  text-decoration:line-through;
+}
+.cal-day .day-task .task-dot{
+  width:5px;height:5px;border-radius:50%;flex-shrink:0;
+}
+
+/* ============ TASKS LIST ============ */
+.task-item{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px;
+  transition:.18s;
+}
+.task-item:hover{border-color:var(--line-2);background:var(--surface-3)}
+.task-item.done{border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.04)}
+.task-icon{
+  width:40px;height:40px;border-radius:11px;
+  background:var(--surface-3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.task-info{flex:1;min-width:0}
+.task-name{font-weight:700;font-size:14.5px;font-family:'Space Grotesk',sans-serif}
+.task-meta{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
+.task-actions{display:flex;gap:6px;align-items:center}
+.task-check{
+  width:32px;height:32px;border-radius:10px;
+  border:2px solid var(--line-2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:.2s;flex-shrink:0;
+  background:var(--surface);color:transparent;
+}
+.task-check:hover{border-color:var(--green)}
+.task-check.done{background:var(--green);border-color:var(--green);color:#0a0a0a}
+.task-edit,.task-del{
+  background:var(--surface);border:1px solid var(--line-2);
+  color:var(--muted);width:32px;height:32px;border-radius:10px;
+  cursor:pointer;font-size:13px;transition:.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.task-edit:hover{color:var(--text);border-color:var(--line-strong)}
+.task-del:hover{color:var(--red);border-color:rgba(248,113,113,0.4)}
+
+/* ============ MODAL ============ */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);z-index:100;display:none;
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-bg.show{display:flex;animation:pageIn .2s}
+.modal{
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  border-radius:var(--r-lg);
+  padding:28px 24px;
+  max-width:480px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  max-height:85vh;overflow-y:auto;
+}
+.modal h3{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:19px;font-weight:700;margin-bottom:18px;
+}
+.modal .close-btn{
+  float:right;background:none;border:none;
+  color:var(--muted);font-size:22px;cursor:pointer;
+  line-height:1;padding:0 4px;
+}
+.modal .close-btn:hover{color:var(--text)}
+
+/* ============ ASSIGNEE PICKER ============ */
+.assignee-picker,.icon-picker{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;
+}
+.assignee-pick,.icon-pick{
+  background:var(--surface-2);
+  border:2px solid var(--line-2);
+  border-radius:10px;padding:11px 8px;text-align:center;
+  cursor:pointer;transition:.15s;font-size:13px;font-weight:600;
+}
+.assignee-pick:hover,.icon-pick:hover{border-color:var(--line-strong)}
+.assignee-pick.selected,.icon-pick.selected{
+  border-color:var(--accent);background:var(--surface-3);
+}
+.icon-pick{font-size:18px;padding:12px 8px}
+
+/* ============ FREQ PICKER ============ */
+.freq-picker{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;
+}
+.freq-pick{
+  background:var(--surface-2);
+  border:2px solid var(--line-2);
+  border-radius:10px;padding:9px 4px;text-align:center;
+  cursor:pointer;transition:.15s;font-size:11.5px;font-weight:600;
+}
+.freq-pick:hover{border-color:var(--line-strong)}
+.freq-pick.selected{border-color:var(--accent);background:var(--surface-3)}
+
+/* ============ TODAY SUMMARY ============ */
+.today-summary{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  padding:24px;margin-bottom:18px;
+}
+.today-summary h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:20px;font-weight:700;letter-spacing:-0.025em;
+  margin-bottom:6px;
+}
+.today-summary .date{
+  color:var(--muted);font-size:13.5px;font-weight:500;margin-bottom:18px;
+}
+.today-list{display:flex;flex-direction:column;gap:8px}
+.today-task{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  transition:.18s;
+}
+.today-task:hover{border-color:var(--line-2)}
+.today-task.done{border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.04)}
+.today-task .tt-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--surface-3);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  flex-shrink:0;
+}
+.today-task .tt-info{flex:1;min-width:0}
+.today-task .tt-name{font-weight:700;font-size:14.5px;font-family:'Space Grotesk',sans-serif}
+.today-task .tt-meta{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
+.today-task .tt-check{
+  width:30px;height:30px;border-radius:9px;
+  border:2px solid var(--line-2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:.2s;flex-shrink:0;
+  background:var(--surface);color:transparent;
+}
+.today-task .tt-check:hover{border-color:var(--green)}
+.today-task .tt-check.done{background:var(--green);border-color:var(--green);color:#0a0a0a}
+
+/* ============ ASSIGNEE COLORS ============ */
+.assignee-Pavel{color:var(--blue)}
+.assignee-Mamka{color:var(--purple)}
+.assignee-Blanka{color:var(--yellow)}
+.bg-Pavel{background:var(--blue)}
+.bg-Mamka{background:var(--purple)}
+.bg-Blanka{background:var(--yellow)}
+
+/* ============ EMPTY STATE ============ */
+.empty-state{text-align:center;padding:40px 18px;color:var(--muted)}
+.empty-state .emoji{font-size:42px;margin-bottom:12px;opacity:.4}
+.empty-state .text{font-size:14px;font-weight:500}
+
+/* ============ TOAST ============ */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(120px);
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  border-radius:12px;padding:12px 22px;
+  font-size:14px;font-weight:700;z-index:1000;
+  transition:.35s cubic-bezier(.2,.8,.2,1);opacity:0;
+  box-shadow:0 12px 32px rgba(0,0,0,0.5);
+  max-width:90vw;text-align:center;
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+
+/* ============ BOTTOM NAV (mobile) ============ */
+.bottom-nav{
+  display:none;position:fixed;bottom:14px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(20,20,20,0.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--line-2);
+  border-radius:24px;padding:7px;gap:2px;
+  z-index:60;box-shadow:0 12px 32px rgba(0,0,0,0.5);
+  max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none;
+}
+.bottom-nav::-webkit-scrollbar{display:none}
+
+/* ============ HERO ============ */
+.hero{
+  background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  padding:28px 26px;margin-bottom:18px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-30%;right:-15%;
+  width:200px;height:200px;
+  background:radial-gradient(circle,rgba(255,255,255,0.04),transparent 70%);
+  filter:blur(20px);pointer-events:none;
+}
+.hero h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:26px;font-weight:700;letter-spacing:-0.025em;
+  margin-bottom:6px;
+}
+.hero p{color:var(--muted);font-size:14px;font-weight:500}
+
+/* ============ STATS PAGE ============ */
+.stat-bar{
+  display:flex;height:10px;border-radius:5px;overflow:hidden;
+  margin:10px 0;background:var(--surface-3);gap:2px;
+}
+.stat-bar .seg{transition:width .8s}
+
+/* ============ SECTION H ============ */
+.section-h{
+  font-size:12px;font-weight:800;text-transform:uppercase;
+  letter-spacing:0.12em;color:var(--muted);margin:24px 0 14px;
+  font-family:'Space Grotesk',sans-serif;
+}
+.section-h:first-child{margin-top:0}
+
+/* ============ NTFY ============ */
+.ntfy-card{
+  background:linear-gradient(135deg,var(--surface),var(--surface-2));
+  border:1px solid var(--line-2);
+  border-radius:var(--r-lg);
+  padding:24px;margin-bottom:18px;
+}
+.ntfy-topic{
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--surface-3);
+  padding:10px 14px;border-radius:10px;
+  font-size:13px;font-weight:700;
+  word-break:break-all;margin:10px 0;
+  border:1px solid var(--line-2);
+}
+
+/* ============ LOG ============ */
+.log-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:13px 14px;border-bottom:1px solid var(--line);
+  font-size:14px;gap:10px;
+}
+.log-item:last-child{border-bottom:none}
+.log-item:hover{background:var(--surface-2)}
+.log-item .l-name{font-weight:600;font-family:'Space Grotesk',sans-serif}
+.log-item .l-meta{color:var(--muted);font-size:12px;font-weight:600}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:840px){
+  header{padding:12px 14px;gap:10px;max-width:100%}
+  nav{display:none}
+  .bottom-nav{display:flex}
+  main{padding:18px 14px 110px}
+  .card{padding:22px 20px}
+  .cal-grid{gap:4px}
+  .cal-day{min-height:78px;padding:7px 5px}
+  .cal-day .day-num{font-size:11px}
+  .cal-day .day-task{font-size:9px;padding:2px 4px}
+  .freq-picker{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:480px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+  .cal-weekday{font-size:9px;padding:6px 0}
+  .cal-day{min-height:64px}
+}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--line-2)}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19.36 2.64a3 3 0 0 0-4.24 0L3.61 14.15a3 3 0 0 0 0 4.24l2.12 2.12a3 3 0 0 0 4.24 0L21.48 6.88a3 3 0 0 0 0-4.24z"/>
+          <path d="M7.12 11.88l3.88 3.88M11.5 7.5l3.88 3.88M15.88 3.12l3.88 3.88"/>
+        </svg>
+      </div>
+      <div>
+        <h1>ÚKLID ROZVRH</h1>
+        <div class="sub">Rodinný plán domácnosti</div>
+      </div>
+    </div>
+    <form class="login-form" onsubmit="handleLogin(event)">
+      <input type="password" id="loginPass" placeholder="Zadej heslo" autocomplete="current-password" autofocus>
+      <div class="login-error" id="loginError">Špatné heslo</div>
+      <button type="submit" class="login-submit">Vstoupit →</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19.36 2.64a3 3 0 0 0-4.24 0L3.61 14.15a3 3 0 0 0 0 4.24l2.12 2.12a3 3 0 0 0 4.24 0L21.48 6.88a3 3 0 0 0 0-4.24z"/>
+        <path d="M7.12 11.88l3.88 3.88M11.5 7.5l3.88 3.88M15.88 3.12l3.88 3.88"/>
+      </svg>
+    </div>
+    Úklid
+  </div>
+  <nav>
+    <button class="nav-btn active" data-page="today">Dnes</button>
+    <button class="nav-btn" data-page="calendar">Kalendář</button>
+    <button class="nav-btn" data-page="tasks">Úkoly</button>
+    <button class="nav-btn" data-page="stats">Statistiky</button>
+    <button class="nav-btn" data-page="settings">Nastavení</button>
+  </nav>
+  <div class="header-right">
+    <div class="today-badge" id="todayBadge">—</div>
+  </div>
+</header>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" data-page="today">📅</button>
+  <button class="nav-btn" data-page="calendar">🗓️</button>
+  <button class="nav-btn" data-page="tasks">📋</button>
+  <button class="nav-btn" data-page="stats">📊</button>
+  <button class="nav-btn" data-page="settings">⚙️</button>
+</div>
+
+<main>
+
+<!-- ============ TODAY ============ -->
+<section class="page active" id="page-today">
+  <div class="hero">
+    <h2 id="todayGreeting">Ahoj! 👋</h2>
+    <p id="todayDate"></p>
+  </div>
+
+  <div class="today-summary">
+    <h2>Úkoly na dnešek</h2>
+    <div class="date" id="todaySub"></div>
+    <div class="today-list" id="todayList"></div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="stat">
+      <div class="label">Dnes splněno</div>
+      <div class="value" id="statTodayDone">0/0</div>
+      <div class="sub">úkolů</div>
+    </div>
+    <div class="stat">
+      <div class="label">Tento týden</div>
+      <div class="value" id="statWeekDone">0</div>
+      <div class="sub">splněno</div>
+    </div>
+    <div class="stat">
+      <div class="label">Celkem úkolů</div>
+      <div class="value" id="statTotalTasks">0</div>
+      <div class="sub">v systému</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CALENDAR ============ -->
+<section class="page" id="page-calendar">
+  <div class="card">
+    <div class="cal-header">
+      <div class="cal-title" id="calTitle">—</div>
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <button onclick="goToToday()">Dnes</button>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-weekdays">
+      <div class="cal-weekday">Po</div>
+      <div class="cal-weekday">Út</div>
+      <div class="cal-weekday">St</div>
+      <div class="cal-weekday">Čt</div>
+      <div class="cal-weekday">Pá</div>
+      <div class="cal-weekday">So</div>
+      <div class="cal-weekday">Ne</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Vybraný den</div>
+    <div id="calSelectedDay">
+      <div class="empty-state">
+        <div class="emoji">👆</div>
+        <div class="text">Klikni na den v kalendáři<br>pro zobrazení úkolů</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TASKS ============ -->
+<section class="page" id="page-tasks">
+  <div class="card">
+    <div class="card-title">
+      📋 Všechny úkoly
+      <span class="sub" id="tasksCount"></span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="openTaskModal()">+ Nový úkol</button>
+      <button class="btn btn-sm btn-outline" onclick="sendTestNotification()">🔔 Test notifikace</button>
+    </div>
+    <div id="tasksList"></div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section class="page" id="page-stats">
+  <div class="card">
+    <div class="card-title">📊 Statistiky tohoto měsíce</div>
+    <div class="grid grid-3" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="label">Splněno</div>
+        <div class="value" id="monthDone" style="color:var(--green)">0</div>
+        <div class="sub">úkolů</div>
+      </div>
+      <div class="stat">
+        <div class="label">Zmeškáno</div>
+        <div class="value" id="monthMissed" style="color:var(--red)">0</div>
+        <div class="sub">úkolů</div>
+      </div>
+      <div class="stat">
+        <div class="label">Úspěšnost</div>
+        <div class="value" id="monthRate">—</div>
+        <div class="sub">%</div>
+      </div>
+    </div>
+    <div class="section-h">Rozdělení podle osoby</div>
+    <div id="statsByPerson"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 Žebříček</div>
+    <div id="leaderboard"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Historie (posledních 30)</div>
+    <div id="historyLog"></div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section class="page" id="page-settings">
+  <div class="ntfy-card">
+    <div class="card-title">🔔 Push notifikace</div>
+    <p style="color:var(--muted);font-size:13.5px;line-height:1.6;margin-bottom:14px">
+      Každý člen rodiny si nainstaluje appku <strong style="color:var(--text)">ntfy</strong> (zdarma, App Store) a přihlásí se k odběru topicu níže. Pak mu budou chodit push notifikace jako připomenutí úkolů.
+    </p>
+    <div class="section-h" style="margin:14px 0 6px">ntfy topic</div>
+    <div class="ntfy-topic">vHCoTzxTAoRtbDV-uVdbPA</div>
+    <p style="color:var(--muted);font-size:12.5px;line-height:1.5">
+      V appce ntfy: klikni <strong>+</strong>, vlož topic výše, potvrď. Hotovo.
+    </p>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="sendTestNotification()">Odeslat testovací notifikaci</button>
+      <a href="https://ntfy.sh/vHCoTzxTAoRtbDV-uVdbPA" target="_blank" class="btn btn-sm btn-outline">Otevřít topic v prohlížeči</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💾 Data & záloha</div>
+    <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);gap:16px">
+      <div>
+        <div style="font-weight:700;font-size:14.5px">Export dat</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Stáhni všechna data jako JSON</div>
+      </div>
+      <button class="btn btn-sm" onclick="exportData()">Export</button>
+    </div>
+    <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);gap:16px">
+      <div>
+        <div style="font-weight:700;font-size:14.5px">Import dat</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Načti data z JSON souboru</div>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-sm btn-outline" onclick="document.getElementById('importFile').click()">Import</button>
+    </div>
+    <div class="setting-row" style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;gap:16px">
+      <div>
+        <div style="font-weight:700;font-size:14.5px">Reset všech dat</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Smaže všechny úkoly a historii</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="resetData()">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ℹ️ O aplikaci</div>
+    <p style="color:var(--muted);font-size:13.5px;line-height:1.6">
+      <strong style="color:var(--text)">Úklid Rozvrh</strong> — jednoduchý plánovač úkolů pro domácnost.
+      Všichni vidí, kdo co má udělat, kdy se to má stát, a kdo to už splnil.
+      Push notifikace přes ntfy.sh připomene, co je třeba udělat.
+    </p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ CONFIG ============
+const PASSWORD = 'Blanicka1';
+const NTFY_TOPIC = 'vHCoTzxTAoRtbDV-uVdbPA';
+const PEOPLE = ['Pavel','Mamka','Blanka'];
+const ICONS = ['🧹','🧺','👔','🗑️','♻️','🪣','🧽','🚿','🌿','🍽️','🧫','🧴','📦','🔧','🪟','🛏️','🐾','💧','🔥','❄️'];
+const FREQUENCIES = [
+  {id:'daily',label:'Denně'},
+  {id:'weekly',label:'Týdně'},
+  {id:'biweekly',label:'1× za 2 dny'},
+  {id:'monthly',label:'Měsíčně'},
+  {id:'once',label:'Jednorázově'}
+];
+const DAYS_CZ = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
+const MONTHS_CZ = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+
+// ============ DEFAULT TASKS ============
+const DEFAULT_TASKS = [
+  {id:'t1',name:'Vysávání',icon:'🧹',assignee:'Blanka',frequency:'biweekly',dayOfWeek:1,lastDone:null,history:[]},
+  {id:'t2',name:'Praní',icon:'🧺',assignee:'Mamka',frequency:'weekly',dayOfWeek:2,lastDone:null,history:[]},
+  {id:'t3',name:'Žehlení',icon:'👔',assignee:'Mamka',frequency:'weekly',dayOfWeek:3,lastDone:null,history:[]},
+  {id:'t4',name:'Vynést koš',icon:'🗑️',assignee:'Pavel',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
+  {id:'t5',name:'Vynést plasty',icon:'♻️',assignee:'Pavel',frequency:'weekly',dayOfWeek:4,lastDone:null,history:[]},
+  {id:'t6',name:'Třídění odpadu',icon:'♻️',assignee:'Blanka',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
+  {id:'t7',name:'Utírání prachu',icon:'🧽',assignee:'Blanka',frequency:'weekly',dayOfWeek:6,lastDone:null,history:[]},
+  {id:'t8',name:'Myčka nádobí',icon:'🍽️',assignee:'Pavel',frequency:'daily',dayOfWeek:null,lastDone:null,history:[]},
+  {id:'t9',name:'Zalévání kytek',icon:'🌿',assignee:'Mamka',frequency:'biweekly',dayOfWeek:3,lastDone:null,history:[]},
+  {id:'t10',name:'Čištění lednice',icon:'🧫',assignee:'Mamka',frequency:'monthly',dayOfWeek:null,dayOfMonth:1,lastDone:null,history:[]},
+  {id:'t11',name:'Vynést sklo',icon:'♻️',assignee:'Pavel',frequency:'monthly',dayOfWeek:null,dayOfMonth:15,lastDone:null,history:[]},
+  {id:'t12',name:'Vynést papír',icon:'♻️',assignee:'Blanka',frequency:'monthly',dayOfWeek:null,dayOfMonth:8,lastDone:null,history:[]}
+];
+
+// ============ STATE ============
+let STATE = {
+  authed:false,
+  currentMonth:new Date().getMonth(),
+  currentYear:new Date().getFullYear(),
+  selectedDate:null,
+  tasks:[],
+  editingTaskId:null
+};
+
+function loadData(){
+  try{
+    const d = JSON.parse(localStorage.getItem('uklid_data'));
+    if(d && d.tasks) STATE.tasks = d.tasks;
+    else STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  }catch(e){
+    STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  }
+}
+function saveData(){
+  localStorage.setItem('uklid_data',JSON.stringify({tasks:STATE.tasks}));
+}
+loadData();
+
+// ============ AUTH ============
+function handleLogin(e){
+  e.preventDefault();
+  const pass = document.getElementById('loginPass').value;
+  if(pass === PASSWORD){
+    STATE.authed = true;
+    sessionStorage.setItem('uklid_authed','1');
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').classList.add('show');
+    renderAll();
+  }else{
+    document.getElementById('loginError').classList.add('show');
+    document.getElementById('loginPass').value='';
+    setTimeout(()=>document.getElementById('loginError').classList.remove('show'),2500);
+  }
+}
+window.handleLogin = handleLogin;
+
+function checkAuth(){
+  if(sessionStorage.getItem('uklid_authed')==='1'){
+    STATE.authed = true;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').classList.add('show');
+    renderAll();
+  }
+}
+
+// ============ NAV ============
+function goTo(page){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`[data-page="${page}"]`).forEach(b=>b.classList.add('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='today') renderToday();
+  if(page==='calendar') renderCalendar();
+  if(page==='tasks') renderTasks();
+  if(page==='stats') renderStats();
+}
+window.goTo = goTo;
+
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.nav-btn');
+  if(btn&&btn.dataset.page) goTo(btn.dataset.page);
+});
+
+// ============ TOAST ============
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ============ DATE HELPERS ============
+function todayStr(){
+  return new Date().toISOString().split('T')[0];
+}
+function dateToStr(d){
+  return d.toISOString().split('T')[0];
+}
+function strToDate(s){
+  return new Date(s+'T00:00:00');
+}
+function isSameDay(d1,d2){
+  return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate();
+}
+function formatDateLong(d){
+  const days = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+  const months = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+  return `${days[d.getDay()]} ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ============ TASK SCHEDULING ============
+function taskAppliesOn(task, date){
+  const today = new Date();
+  // If once, check if it's the date
+  if(task.frequency==='once'){
+    return task.onceDate === dateToStr(date);
+  }
+  // If daily, show every day
+  if(task.frequency==='daily'){
+    return true;
+  }
+  // If weekly, show on dayOfWeek
+  if(task.frequency==='weekly'){
+    // JS getDay: 0=Sun, 1=Mon, ..., 6=Sat
+    // We use: 1=Mon, 2=Tue, ..., 7=Sun
+    const jsDay = date.getDay()===0 ? 7 : date.getDay();
+    return task.dayOfWeek === jsDay;
+  }
+  // If biweekly, show every other day
+  if(task.frequency==='biweekly'){
+    // Show on dayOfWeek, but only if last done was >= 2 days ago
+    const jsDay = date.getDay()===0 ? 7 : date.getDay();
+    if(task.dayOfWeek !== jsDay) {
+      // Actually, biweekly = every 2 days, not dayOfWeek based
+      // Let's interpret "biweekly" as "every 2 days"
+    }
+    // Interpret as "every 2 days from lastDone or from today"
+    if(!task.lastDone) return true; // never done, show today
+    const lastDone = strToDate(task.lastDone);
+    const diff = Math.floor((date - lastDone) / 86400000);
+    return diff >= 2;
+  }
+  // If monthly, show on dayOfMonth
+  if(task.frequency==='monthly'){
+    return task.dayOfMonth === date.getDate();
+  }
+  return false;
+}
+
+function isTaskDoneOn(task, dateStr){
+  return task.history && task.history.includes(dateStr);
+}
+
+function getTasksForDate(date){
+  return STATE.tasks.filter(t => taskAppliesOn(t, date));
+}
+
+function getTodayTasks(){
+  return getTasksForDate(new Date());
+}
+
+function markTaskDone(taskId){
+  const task = STATE.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  const today = todayStr();
+  if(!task.history) task.history = [];
+  if(task.history.includes(today)){
+    // Unmark
+    task.history = task.history.filter(d=>d!==today);
+    task.lastDone = task.history.length ? task.history[task.history.length-1] : null;
+    toast('Úkol vrácen ↩️');
+  }else{
+    task.history.push(today);
+    task.lastDone = today;
+    toast('Úkol splněn! ✅','success');
+  }
+  saveData();
+  renderAll();
+}
+window.markTaskDone = markTaskDone;
+
+// ============ RENDER: TODAY ============
+function renderToday(){
+  const today = new Date();
+  document.getElementById('todayDate').textContent = formatDateLong(today);
+
+  const hour = today.getHours();
+  let greeting = 'Ahoj! 👋';
+  if(hour<10) greeting = 'Dobré ráno! ☀️';
+  else if(hour<12) greeting = 'Dobré dopoledne! 🌤️';
+  else if(hour<17) greeting = 'Dobré odpoledne! 😊';
+  else if(hour<21) greeting = 'Dobrý večer! 🌆';
+  else greeting = 'Dobrou noc! 🌙';
+  document.getElementById('todayGreeting').textContent = greeting;
+
+  document.getElementById('todayBadge').textContent = today.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'});
+
+  const tasks = getTodayTasks();
+  const todayStr_ = todayStr();
+  const doneCount = tasks.filter(t=>isTaskDoneOn(t,todayStr_)).length;
+
+  document.getElementById('todaySub').textContent = tasks.length ? `${tasks.length} úkolů na dnes` : 'Žádné úkoly na dnes 🎉';
+
+  const list = document.getElementById('todayList');
+  if(tasks.length===0){
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><div class="text">Dnes žádné úkoly! Užij si den.</div></div>';
+  }else{
+    list.innerHTML = tasks.map(t=>{
+      const done = isTaskDoneOn(t,todayStr_);
+      return `<div class="today-task ${done?'done':''}">
+        <div class="tt-icon">${t.icon}</div>
+        <div class="tt-info">
+          <div class="tt-name">${t.name}</div>
+          <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
+        </div>
+        <div class="tt-check ${done?'done':''}" onclick="markTaskDone('${t.id}')">${done?'✓':''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Stats
+  document.getElementById('statTodayDone').textContent = `${doneCount}/${tasks.length}`;
+
+  // Week
+  let weekDone = 0;
+  for(let i=0;i<7;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = dateToStr(d);
+    const wTasks = getTasksForDate(d);
+    weekDone += wTasks.filter(t=>isTaskDoneOn(t,ds)).length;
+  }
+  document.getElementById('statWeekDone').textContent = weekDone;
+  document.getElementById('statTotalTasks').textContent = STATE.tasks.length;
+}
+
+function freqLabel(f){
+  const item = FREQUENCIES.find(x=>x.id===f);
+  return item ? item.label : f;
+}
+
+// ============ RENDER: CALENDAR ============
+function renderCalendar(){
+  const monthName = MONTHS_CZ[STATE.currentMonth];
+  document.getElementById('calTitle').textContent = `${monthName.charAt(0).toUpperCase()+monthName.slice(1)} ${STATE.currentYear}`;
+
+  const firstDay = new Date(STATE.currentYear, STATE.currentMonth, 1);
+  const lastDay = new Date(STATE.currentYear, STATE.currentMonth+1, 0);
+  // JS getDay: 0=Sun. We want Monday=0.
+  let startDay = firstDay.getDay()-1;
+  if(startDay<0) startDay = 6;
+
+  const grid = document.getElementById('calGrid');
+  let html = '';
+
+  // Previous month days
+  const prevMonthLast = new Date(STATE.currentYear, STATE.currentMonth, 0).getDate();
+  for(let i=startDay-1;i>=0;i--){
+    const d = new Date(STATE.currentYear, STATE.currentMonth-1, prevMonthLast-i);
+    html += `<div class="cal-day other-month" onclick="selectDate('${dateToStr(d)}')">
+      <div class="day-num">${d.getDate()}</div>
+      <div class="day-tasks">${miniTasks(d)}</div>
+    </div>`;
+  }
+
+  // Current month days
+  const today = new Date();
+  for(let i=1;i<=lastDay.getDate();i++){
+    const d = new Date(STATE.currentYear, STATE.currentMonth, i);
+    const isToday = isSameDay(d,today);
+    html += `<div class="cal-day ${isToday?'today':''}" onclick="selectDate('${dateToStr(d)}')">
+      <div class="day-num">${i}</div>
+      <div class="day-tasks">${miniTasks(d)}</div>
+    </div>`;
+  }
+
+  // Next month days (fill to 6 weeks)
+  const totalCells = startDay + lastDay.getDate();
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for(let i=1;i<=remaining;i++){
+    const d = new Date(STATE.currentYear, STATE.currentMonth+1, i);
+    html += `<div class="cal-day other-month" onclick="selectDate('${dateToStr(d)}')">
+      <div class="day-num">${d.getDate()}</div>
+      <div class="day-tasks">${miniTasks(d)}</div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // Render selected day if any
+  if(STATE.selectedDate){
+    renderSelectedDay();
+  }
+}
+
+function miniTasks(date){
+  const tasks = getTasksForDate(date);
+  const ds = dateToStr(date);
+  return tasks.slice(0,3).map(t=>{
+    const done = isTaskDoneOn(t,ds);
+    return `<div class="day-task ${done?'done':''}">
+      <span class="task-dot bg-${t.assignee}"></span>
+      ${t.icon} ${t.name}
+    </div>`;
+  }).join('') + (tasks.length>3?`<div class="day-task" style="text-align:center;opacity:0.6">+${tasks.length-3}</div>`:'');
+}
+
+function selectDate(ds){
+  STATE.selectedDate = ds;
+  renderSelectedDay();
+}
+window.selectDate = selectDate;
+
+function renderSelectedDay(){
+  const ds = STATE.selectedDate;
+  const d = strToDate(ds);
+  const tasks = getTasksForDate(d);
+  const doneCount = tasks.filter(t=>isTaskDoneOn(t,ds)).length;
+
+  const container = document.getElementById('calSelectedDay');
+  container.innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700">${formatDateLong(d)}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:2px">${tasks.length} úkolů · ${doneCount} splněno</div>
+    </div>
+    ${tasks.length===0?'<div class="empty-state"><div class="emoji">🎉</div><div class="text">Žádné úkoly tento den</div></div>':
+    tasks.map(t=>{
+      const done = isTaskDoneOn(t,ds);
+      return `<div class="today-task ${done?'done':''}" style="margin-bottom:8px">
+        <div class="tt-icon">${t.icon}</div>
+        <div class="tt-info">
+          <div class="tt-name">${t.name}</div>
+          <div class="tt-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}</div>
+        </div>
+        <div class="tt-check ${done?'done':''}" onclick="markTaskDoneOnDate('${t.id}','${ds}')">${done?'✓':''}</div>
+      </div>`;
+    }).join('')}
+    <button class="btn btn-sm btn-outline" style="margin-top:12px" onclick="openTaskModal(null,'${ds}')">+ Přidat úkol na tento den</button>
+  `;
+}
+
+function markTaskDoneOnDate(taskId,ds){
+  const task = STATE.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  if(!task.history) task.history = [];
+  if(task.history.includes(ds)){
+    task.history = task.history.filter(d=>d!==ds);
+    toast('Úkol vrácen ↩️');
+  }else{
+    task.history.push(ds);
+    if(ds===todayStr()) task.lastDone = ds;
+    toast('Úkol splněn! ✅','success');
+  }
+  saveData();
+  renderAll();
+}
+window.markTaskDoneOnDate = markTaskDoneOnDate;
+
+function changeMonth(delta){
+  STATE.currentMonth += delta;
+  if(STATE.currentMonth > 11){
+    STATE.currentMonth = 0;
+    STATE.currentYear++;
+  }else if(STATE.currentMonth < 0){
+    STATE.currentMonth = 11;
+    STATE.currentYear--;
+  }
+  renderCalendar();
+}
+window.changeMonth = changeMonth;
+
+function goToToday(){
+  const t = new Date();
+  STATE.currentMonth = t.getMonth();
+  STATE.currentYear = t.getFullYear();
+  STATE.selectedDate = dateToStr(t);
+  renderCalendar();
+}
+window.goToToday = goToToday;
+
+// ============ RENDER: TASKS ============
+function renderTasks(){
+  document.getElementById('tasksCount').textContent = `${STATE.tasks.length} úkolů`;
+  const list = document.getElementById('tasksList');
+  if(STATE.tasks.length===0){
+    list.innerHTML = '<div class="empty-state"><div class="emoji">📋</div><div class="text">Žádné úkoly. Přidej první!</div></div>';
+    return;
+  }
+  list.innerHTML = STATE.tasks.map(t=>`
+    <div class="task-item">
+      <div class="task-icon">${t.icon}</div>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-meta"><span class="assignee-${t.assignee}">${t.assignee}</span> · ${freqLabel(t.frequency)}${t.lastDone?` · naposledy ${formatDateShort(t.lastDone)}`:''}</div>
+      </div>
+      <div class="task-actions">
+        <button class="task-edit" onclick="openTaskModal('${t.id}')">✎</button>
+        <button class="task-del" onclick="deleteTask('${t.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function formatDateShort(ds){
+  const d = strToDate(ds);
+  return d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'});
+}
+
+function deleteTask(id){
+  if(!confirm('Smazat úkol?')) return;
+  STATE.tasks = STATE.tasks.filter(t=>t.id!==id);
+  saveData();
+  renderAll();
+  toast('Úkol smazán');
+}
+window.deleteTask = deleteTask;
+
+// ============ TASK MODAL ============
+function openTaskModal(taskId=null, presetDate=null){
+  STATE.editingTaskId = taskId;
+  const task = taskId ? STATE.tasks.find(t=>t.id===taskId) : null;
+
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <h3>${task?'Upravit úkol':'Nový úkol'}<button class="close-btn" onclick="closeModal()">×</button></h3>
+    <form onsubmit="saveTask(event);return false">
+      <div class="field">
+        <label>Název úkolu</label>
+        <input type="text" id="taskName" placeholder="např. Vysát" required value="${task?task.name:''}">
+      </div>
+      <div class="field">
+        <label>Ikonka</label>
+        <div class="icon-picker" id="iconPicker">
+          ${ICONS.map(ic=>`<div class="icon-pick ${task&&task.icon===ic?'selected':''}" onclick="pickIcon(this,'${ic}')" data-icon="${ic}">${ic}</div>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Kdo</label>
+        <div class="assignee-picker" id="assigneePicker">
+          ${PEOPLE.map(p=>`<div class="assignee-pick ${task&&task.assignee===p?'selected':''}" onclick="pickAssignee(this,'${p}')" data-assignee="${p}"><span class="assignee-${p}">${p}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Frekvence</label>
+        <div class="freq-picker" id="freqPicker">
+          ${FREQUENCIES.map(f=>`<div class="freq-pick ${task&&task.frequency===f.id?'selected':''}" onclick="pickFreq(this,'${f.id}')" data-freq="${f.id}">${f.label}</div>`).join('')}
+        </div>
+      </div>
+      <div class="field" id="dayOfWeekField" style="display:none">
+        <label>Den v týdnu</label>
+        <select id="taskDayOfWeek">
+          <option value="1">Pondělí</option>
+          <option value="2">Úterý</option>
+          <option value="3">Středa</option>
+          <option value="4">Čtvrtek</option>
+          <option value="5">Pátek</option>
+          <option value="6">Sobota</option>
+          <option value="7">Neděle</option>
+        </select>
+      </div>
+      <div class="field" id="dayOfMonthField" style="display:none">
+        <label>Den v měsíci</label>
+        <input type="number" id="taskDayOfMonth" min="1" max="28" placeholder="např. 1 (první den měsíce)">
+      </div>
+      <div class="field" id="onceDateField" style="display:none">
+        <label>Datum (jednorázový úkol)</label>
+        <input type="date" id="taskOnceDate" value="${presetDate||''}">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-block">${task?'Uložit změny':'Přidat úkol'}</button>
+        ${task?`<button type="button" class="btn btn-outline" onclick="closeModal()">Zrušit</button>`:''}
+      </div>
+    </form>
+  `;
+
+  // Pre-fill values
+  if(task){
+    if(task.dayOfWeek) document.getElementById('taskDayOfWeek').value = task.dayOfWeek;
+    if(task.dayOfMonth) document.getElementById('taskDayOfMonth').value = task.dayOfMonth;
+    if(task.onceDate) document.getElementById('taskOnceDate').value = task.onceDate;
+    // Show appropriate field
+    updateFreqFields(task.frequency);
+  }else{
+    // Default: select first icon, first assignee, daily
+    const firstIcon = document.querySelector('.icon-pick');
+    if(firstIcon) firstIcon.classList.add('selected');
+    const firstAssignee = document.querySelector('.assignee-pick');
+    if(firstAssignee) firstAssignee.classList.add('selected');
+    const firstFreq = document.querySelector('.freq-pick');
+    if(firstFreq) firstFreq.classList.add('selected');
+    updateFreqFields('daily');
+  }
+
+  document.getElementById('modalBg').classList.add('show');
+}
+window.openTaskModal = openTaskModal;
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+}
+window.closeModal = closeModal;
+
+function pickIcon(el, ic){
+  document.querySelectorAll('.icon-pick').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+window.pickIcon = pickIcon;
+
+function pickAssignee(el, p){
+  document.querySelectorAll('.assignee-pick').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+window.pickAssignee = pickAssignee;
+
+function pickFreq(el, f){
+  document.querySelectorAll('.freq-pick').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  updateFreqFields(f);
+}
+window.pickFreq = pickFreq;
+
+function updateFreqFields(freq){
+  document.getElementById('dayOfWeekField').style.display = (freq==='weekly') ? 'block' : 'none';
+  document.getElementById('dayOfMonthField').style.display = (freq==='monthly') ? 'block' : 'none';
+  document.getElementById('onceDateField').style.display = (freq==='once') ? 'block' : 'none';
+}
+
+function saveTask(e){
+  e.preventDefault();
+  const name = document.getElementById('taskName').value.trim();
+  if(!name){ toast('Zadej název úkolu','error'); return; }
+  const icon = document.querySelector('.icon-pick.selected')?.dataset.icon || '🧹';
+  const assignee = document.querySelector('.assignee-pick.selected')?.dataset.assignee || 'Pavel';
+  const frequency = document.querySelector('.freq-pick.selected')?.dataset.freq || 'daily';
+  const dayOfWeek = frequency==='weekly' ? parseInt(document.getElementById('taskDayOfWeek').value) : null;
+  const dayOfMonth = frequency==='monthly' ? parseInt(document.getElementById('taskDayOfMonth').value) : null;
+  const onceDate = frequency==='once' ? document.getElementById('taskOnceDate').value : null;
+
+  if(STATE.editingTaskId){
+    const task = STATE.tasks.find(t=>t.id===STATE.editingTaskId);
+    if(task){
+      task.name = name;
+      task.icon = icon;
+      task.assignee = assignee;
+      task.frequency = frequency;
+      task.dayOfWeek = dayOfWeek;
+      task.dayOfMonth = dayOfMonth;
+      task.onceDate = onceDate;
+    }
+    toast('Úkol upraven ✏️');
+  }else{
+    const newTask = {
+      id: 't'+Date.now(),
+      name, icon, assignee, frequency,
+      dayOfWeek, dayOfMonth, onceDate,
+      lastDone: null, history: []
+    };
+    STATE.tasks.push(newTask);
+    toast('Úkol přidán! 📋','success');
+  }
+  saveData();
+  closeModal();
+  renderAll();
+}
+window.saveTask = saveTask;
+
+// ============ RENDER: STATS ============
+function renderStats(){
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  let done = 0, missed = 0;
+  const personStats = {};
+  PEOPLE.forEach(p=>personStats[p]={done:0,missed:0});
+
+  // Iterate this month days
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  for(let i=1;i<=daysInMonth;i++){
+    const d = new Date(year, month, i);
+    if(d > now) break;
+    const ds = dateToStr(d);
+    const tasks = getTasksForDate(d);
+    tasks.forEach(t=>{
+      if(isTaskDoneOn(t,ds)){
+        done++;
+        personStats[t.assignee].done++;
+      }else{
+        missed++;
+        personStats[t.assignee].missed++;
+      }
+    });
+  }
+
+  document.getElementById('monthDone').textContent = done;
+  document.getElementById('monthMissed').textContent = missed;
+  const total = done+missed;
+  document.getElementById('monthRate').textContent = total ? Math.round(done/total*100) : '—';
+
+  // Person breakdown
+  const sp = document.getElementById('statsByPerson');
+  sp.innerHTML = PEOPLE.map(p=>{
+    const s = personStats[p];
+    const t = s.done+s.missed;
+    const pct = t ? Math.round(s.done/t*100) : 0;
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="assignee-${p}" style="font-weight:700">${p}</span>
+        <span style="color:var(--muted);font-size:13px;font-weight:600">${s.done}/${t} (${pct}%)</span>
+      </div>
+      <div class="stat-bar">
+        <div class="seg bg-${p}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Leaderboard
+  const lb = [...PEOPLE].sort((a,b)=>personStats[b].done-personStats[a].done);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('leaderboard').innerHTML = lb.map((p,i)=>
+    `<div class="log-item">
+      <span class="l-name">${medals[i]||''} <span class="assignee-${p}">${p}</span></span>
+      <span class="l-meta">${personStats[p].done} splněno</span>
+    </div>`
+  ).join('');
+
+  // History log
+  const allHistory = [];
+  STATE.tasks.forEach(t=>{
+    if(t.history){
+      t.history.forEach(d=>{
+        allHistory.push({date:d,task:t.name,assignee:t.assignee,icon:t.icon});
+      });
+    }
+  });
+  allHistory.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const hl = document.getElementById('historyLog');
+  if(allHistory.length===0){
+    hl.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><div class="text">Zatím nic nesplněno</div></div>';
+  }else{
+    hl.innerHTML = allHistory.slice(0,30).map(h=>
+      `<div class="log-item">
+        <span><span style="font-size:16px">${h.icon}</span> <span class="l-name">${h.task}</span> <span class="assignee-${h.assignee}" style="font-size:12px">· ${h.assignee}</span></span>
+        <span class="l-meta">${formatDateShort(h.date)}</span>
+      </div>`
+    ).join('');
+  }
+}
+
+// ============ NTFY ============
+async function sendTestNotification(){
+  toast('Odesílám…');
+  try{
+    const resp = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method:'POST',
+      headers:{
+        'Title':'Úklid Rozvrh 📋',
+        'Tags':'broom,white_check_mark',
+        'Priority':'default'
+      },
+      body:'🔔 Testovací notifikace — úklidový rozvrh funguje!'
+    });
+    if(resp.ok){
+      toast('Notifikace odeslána! 🔔','success');
+    }else{
+      toast('Chyba odeslání','error');
+    }
+  }catch(e){
+    toast('Chyba: '+e.message,'error');
+  }
+}
+window.sendTestNotification = sendTestNotification;
+
+// ============ DATA ============
+function exportData(){
+  const blob = new Blob([JSON.stringify({tasks:STATE.tasks},null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `uklid_backup_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Data exportována 💾','success');
+}
+window.exportData = exportData;
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const d = JSON.parse(e.target.result);
+      if(d.tasks) STATE.tasks = d.tasks;
+      saveData();
+      toast('Data importována ✅','success');
+      renderAll();
+    }catch(err){ toast('Chyba importu','error'); }
+  };
+  reader.readAsText(file);
+}
+window.importData = importData;
+
+function resetData(){
+  if(!confirm('Opravdu smazat VŠECHNA data? Tato akce je nevratná!')) return;
+  STATE.tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  saveData();
+  toast('Všechna data smazána');
+  renderAll();
+}
+window.resetData = resetData;
+
+// ============ RENDER ALL ============
+function renderAll(){
+  renderToday();
+  renderCalendar();
+  renderTasks();
+  renderStats();
+}
+
+checkAuth();
+</script>
+</body>
+</html>
